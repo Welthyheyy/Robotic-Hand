@@ -33,11 +33,43 @@ STEP_SENSITIVITY = 0.05   # degrees of hand rotation → 1 step
 
 
 #Calculates distance between landmarks
-def distance(a, b):
-    return math.sqrt(
-        (a.x - b.x) ** 2 +
-        (a.y - b.y) ** 2
-    )
+def angle(tip, mid,base):
+    v1_x = tip.x - base.x
+    v1_y = mid.y - base.y
+    v2_x = tip.x - mid.x
+    v2_y = tip.y - mid.y
+
+    # Calculate angle between vectors
+    dot = v1_x * v2_x + v1_y * v2_y
+    mag1 = math.sqrt(v1_x**2 + v1_y**2)
+    mag2 = math.sqrt(v2_x**2 + v2_y**2)
+
+    if mag1 > 0 and mag2 > 0:
+        cos_angle = dot / (mag1 * mag2)
+        cos_angle = max(-1, min(1, cos_angle))  # Clamp to valid range
+        angle_rad = math.acos(cos_angle)
+        finger_angle = math.degrees(angle_rad)
+
+    # Map angle to servo (straight ≈ 180°, bent ≈ 90°)
+    raw_angle = map_value(finger_angle, 90, 180, 180, 0)
+    raw_angle = max(0, min(180, raw_angle))
+
+    return raw_angle
+
+# Smoothes raw angle data
+def smooth_angle(raw_angle):
+    smooth_angle = 90
+
+    if raw_angle < 5:
+        raw_angle = 0
+    elif raw_angle > 175:
+        raw_angle = 180
+
+    alpha = 0.05 if raw_angle in (0,180) else 0.2
+    smooth_angle += alpha * (raw_angle - smooth_angle)
+    smooth_angle = int(smooth_angle)
+    return smooth_angle
+
 
 # Maps finger angle to servo angle
 def map_value(x, in_min, in_max, out_min, out_max):
@@ -95,31 +127,14 @@ while True:
 
 
     # Index finger
-            index_tip = landmarks[8]
-            index_base = landmarks[5]
+            index_tip = landmarks[8] #fingertip
+            index_mid = landmarks[6] #middle joint
+            index_base = landmarks[5] #base joint
 
-            index_dist = distance(index_tip, index_base)
+            raw_index_angle = angle(index_tip, index_mid,index_base)
             last_sent_servo = None
 
-            # Debug print
-            #print(f"Index finger distance: {index_dist:.3f}")
-
-            # Clamp distance
-            index_dist = max(0.035, min(0.11, index_dist))
-
-            raw_angle = map_value(index_dist, 0.035, 0.11, 180, 0)
-            raw_angle = max(0, min(180, raw_angle))
-
-            # Deadzone at extremes
-            if raw_angle < 5:
-                raw_angle = 0
-            elif raw_angle > 175:
-                raw_angle = 180
-
-            # Adaptive smoothing
-            alpha = 0.05 if raw_angle in (0,180) else 0.2
-            smooth_angle += alpha * (raw_angle - smooth_angle)
-            smooth_angle = int(smooth_angle)
+            index_angle = smooth_angle(raw_index_angle)
 
             if last_sent_servo is None or abs(smooth_angle - last_sent_servo) >= 2:
                 ser.write(f"S:{smooth_angle}\n".encode())
