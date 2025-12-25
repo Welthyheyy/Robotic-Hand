@@ -32,7 +32,7 @@ prev_hand_angle = None
 STEP_SENSITIVITY = 0.05   # degrees of hand rotation → 1 step
 
 
-#Calculates distance between landmarks
+#Calculates angle between landmarks
 def angle(tip, mid,base):
     v1_x = tip.x - base.x
     v1_y = mid.y - base.y
@@ -132,13 +132,66 @@ while True:
             index_base = landmarks[5] #base joint
 
             raw_index_angle = angle(index_tip, index_mid,index_base)
-            last_sent_servo = None
+            index_last_sent_servo = None
 
             index_angle = smooth_angle(raw_index_angle)
 
-            if last_sent_servo is None or abs(smooth_angle - last_sent_servo) >= 2:
-                ser.write(f"S:{smooth_angle}\n".encode())
-                last_sent_servo = smooth_angle
+            if index_last_sent_servo is None or abs(index_angle - index_last_sent_servo) >= 2:
+                ser.write(f"I:{index_angle}\n".encode())
+                index_last_sent_servo = index_angle
+
+    # Middle finger
+
+            middle_tip = landmarks[12]
+            middle_mid = landmarks[10]
+            middle_base = landmarks[9]
+
+            raw_middle_angle = angle(middle_tip, middle_mid,middle_base)
+            middle_last_sent_servo = None
+            middle_angle = smooth_angle(raw_middle_angle)
+
+            if middle_last_sent_servo is None or abs(middle_angle - middle_last_sent_servo) >= 2:
+                ser.write(f"M:{middle_angle}\n".encode())
+                middle_last_sent_servo = middle_angle
+
+
+    # Thumb
+
+            thumb_tip = landmarks[4]
+            thumb_mid = landmarks[3]
+            thumb_base = landmarks[2]
+
+            raw_thumb_angle = angle(thumb_tip, thumb_mid,thumb_base)
+            thumb_last_sent_servo = None
+            thumb_angle = smooth_angle(raw_thumb_angle)
+
+            if thumb_last_sent_servo is None or abs(thumb_angle - thumb_last_sent_servo) >= 2:
+                ser.write(f"T:{thumb_angle}\n".encode())
+                thumb_last_sent_servo = thumb_angle
+
+    #Ring/Pinky
+
+            ring_tip = landmarks[16]
+            ring_mid = landmarks[14]
+            ring_base = landmarks[13]
+
+            raw_ring_angle = angle(ring_tip, ring_mid,ring_base)
+
+            pinky_tip = landmarks[20]
+            pinky_mid = landmarks[18]
+            pinky_base = landmarks[17]
+
+            raw_pinky_angle = angle(pinky_tip, ring_mid,ring_base)
+
+            raw_ring_pinky_angle = (raw_pinky_angle + raw_ring_angle)/2 #average the two angles
+
+            ring_pinky_last_sent_servo = None
+            ring_pinky_angle = smooth_angle(raw_ring_pinky_angle)
+
+            if ring_pinky_last_sent_servo is None or abs(ring_pinky_angle - ring_pinky_last_sent_servo) >= 2:
+                ser.write(f"RP:{ring_pinky_angle}\n".encode())
+                ring_pinky_last_sent_servo = ring_pinky_angle
+
 
 
     cv2.imshow("Hand Tracking", frame)
