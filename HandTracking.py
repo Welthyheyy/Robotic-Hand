@@ -45,13 +45,17 @@ STEP_SENSITIVITY = 0.05   # degrees of hand rotation → 1 step
 def angle(tip, mid,base):
     v1_x = tip.x - base.x
     v1_y = mid.y - base.y
+    v1_z = mid.z - base.z
+
     v2_x = tip.x - mid.x
     v2_y = tip.y - mid.y
+    v2_z = tip.z - mid.z
+
 
     # Calculate angle between vectors
-    dot = v1_x * v2_x + v1_y * v2_y
-    mag1 = math.sqrt(v1_x**2 + v1_y**2)
-    mag2 = math.sqrt(v2_x**2 + v2_y**2)
+    dot = v1_x * v2_x + v1_y * v2_y + v1_z * v2_z
+    mag1 = math.sqrt(v1_x**2 + v1_y**2 + v1_z**2)
+    mag2 = math.sqrt(v2_x**2 + v2_y**2 + v2_z**2)
 
     if mag1 > 0 and mag2 > 0:
         cos_angle = dot / (mag1 * mag2)
