@@ -38,7 +38,7 @@ ser = serial.Serial('/dev/cu.usbmodem11301', 9600)
 Alpha = 0.2
 
 prev_hand_angle = None
-STEP_SENSITIVITY = 0.05   # degrees of hand rotation → 1 step
+WRIST_SENSITIVITY = 2  # degrees of hand rotation → 1 step
 
 
 #Calculates angle between landmarks
@@ -70,16 +70,22 @@ def angle(tip, mid,base):
     return raw_angle
 
 # Smoothes raw angle data
-def smooth_angle(raw_angle, smooth_angle):
+def smooth_angle(raw_angle, current_smooth):
+    alpha = 0.15
+
     if raw_angle < 5:
         raw_angle = 0
     elif raw_angle > 175:
         raw_angle = 180
 
-    alpha = 0.05 if raw_angle in (0,180) else 0.2
-    smooth_angle += alpha * (raw_angle - smooth_angle)
-    smooth_angle = int(smooth_angle)
-    return smooth_angle
+    new_smooth = current_smooth + alpha * (raw_angle - current_smooth)
+
+    if abs(new_smooth - 0) < 3:
+        new_smooth = 0
+    elif abs(new_smooth - 180) < 3:
+        new_smooth = 180
+
+    return int(new_smooth)
 
 
 # Maps finger angle to servo angle
@@ -115,29 +121,14 @@ while True:
 
             hand_angle = math.degrees(math.atan2(dy, dx))
 
-            last_step_time = 0
-            STEP_INTERVAL = 0.05  # seconds (20 Hz max)
+            hand_angle = (hand_angle+360) % 360
+
+            target_stepper_pos = int((hand_angle / 360.0) * 2048 * WRIST_SENSITIVITY) # 360 degrees = 2048 steps
+
+            ser.write(f"W:{target_stepper_pos}\n".encode())
 
 
-            if prev_hand_angle is None:
-                prev_hand_angle = hand_angle
-            else:
-                delta = (hand_angle - prev_hand_angle + 180) % 360 - 180
-
-                # DEADZONE (ignore tiny motion)
-                now = time.time()
-                if abs(delta) > 2 and now - last_step_time > STEP_INTERVAL:
-                    step_delta = int(delta / STEP_SENSITIVITY)
-                    step_delta = max(-50, min(50, step_delta))
-
-                    if step_delta != 0:
-                        ser.write(f"W:{step_delta}\n".encode())
-                        last_step_time = now
-
-                prev_hand_angle = hand_angle
-
-
-    # Index finger
+            # Index finger
             index_tip = landmarks[8] #fingertip
             index_mid = landmarks[6] #middle joint
             index_base = landmarks[5] #base joint
@@ -150,7 +141,7 @@ while True:
                 ser.write(f"I:{smooth_index_angle}\n".encode())
                 index_last_sent_servo = smooth_index_angle
 
-    # Middle finger
+            # Middle finger
 
             middle_tip = landmarks[12]
             middle_mid = landmarks[10]
@@ -164,7 +155,7 @@ while True:
                 middle_last_sent_servo = smooth_middle_angle
 
 
-    # Thumb
+            # Thumb
 
             thumb_tip = landmarks[4]
             thumb_mid = landmarks[3]
@@ -177,7 +168,7 @@ while True:
                 ser.write(f"T:{smooth_thumb_angle}\n".encode())
                 thumb_last_sent_servo = smooth_thumb_angle
 
-    #Ring/Pinky
+            #Ring/Pinky
 
             ring_tip = landmarks[16]
             ring_mid = landmarks[14]
