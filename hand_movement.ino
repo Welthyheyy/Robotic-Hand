@@ -13,9 +13,9 @@ Servo ringPinkyServ;
 
 
 int indexPin = 9;
-int middlePin = idk;
-int thumbPin = idk;
-int ringPinkyPin = idk;
+int middlePin = 10;
+int thumbPin = 11;
+int ringPinkyPin = 12;
 
 int targetServoAngle = 90;
 long targetStepperPos = 0;
@@ -66,10 +66,8 @@ void loop() {
     }
 
     if (cmd.startsWith("W:")) {
-      int delta = cmd.substring(2).toInt();
-      delta = constrain(delta, -20, 20);
-      targetStepperPos += delta;
-      stepper.moveTo(targetStepperPos);
+      targetStepperPos = cmd.substring(2).toInt();  
+      stepper.moveTo(targetStepperPos);             
     }
   }
 }
