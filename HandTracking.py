@@ -2,7 +2,6 @@ import cv2
 import mediapipe as mp
 import math
 import serial
-import time
 
 # python HandTracking.py
 
@@ -35,18 +34,19 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 # Open Serial port
 ser = serial.Serial('/dev/cu.usbmodem11301', 9600)
-Alpha = 0.2
 
-prev_hand_angle = None
-STEP_SENSITIVITY = 0.05   # degrees of hand rotation → 1 step
-
+WRIST_SENSITIVITY = 2
+initial_hand_angle = None
+angle_offset = 0
 
 #Calculates angle between landmarks
 def angle(tip, mid,base):
     v1_x = tip.x - base.x
     v1_y = mid.y - base.y
+
     v2_x = tip.x - mid.x
     v2_y = tip.y - mid.y
+
 
     # Calculate angle between vectors
     dot = v1_x * v2_x + v1_y * v2_y
@@ -88,6 +88,7 @@ def smooth_angle(raw_angle, current_smooth):
 def map_value(x, in_min, in_max, out_min, out_max):
     return int((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -119,8 +120,14 @@ while True:
 
             hand_angle = (hand_angle+360) % 360
 
-            target_stepper_pos = int((hand_angle / 360.0) * 2048) # 360 degrees = 2048 steps
+            if initial_hand_angle is None:
+                initial_hand_angle = hand_angle
+                angle_offset = hand_angle
+                ser.write(f"W:0\n".encode())
 
+            relative_angle = (hand_angle - angle_offset + 360) % 360
+
+            target_stepper_pos = int((relative_angle / 360.0) * 2048 * WRIST_SENSITIVITY) # 360 degrees = 2048 steps
             ser.write(f"W:{target_stepper_pos}\n".encode())
 
 
