@@ -32,9 +32,12 @@ void setup() {
   middleServ.write(targetServoAngle);
   thumbServ.write(targetServoAngle);
   ringPinkyServ.write(targetServoAngle);
-
+  
+  
+  stepper.setCurrentPosition(0);
   stepper.setMaxSpeed(600);
   stepper.setAcceleration(300);
+
 }
 
 void loop() {
@@ -44,7 +47,7 @@ void loop() {
   //  Handle serial without blocking
   if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
-
+ 
     if (cmd.startsWith("I:")) {
       targetServoAngle = constrain(cmd.substring(2).toInt(), 0, 180);
       indexServ.write(targetServoAngle);
