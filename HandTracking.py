@@ -41,7 +41,7 @@ angle_offset = 0
 
 #Calculates angle between landmarks
 def angle(tip, mid,base):
-    v1_x = tip.x - base.x
+    v1_x = mid.x - base.x
     v1_y = mid.y - base.y
 
     v2_x = tip.x - mid.x
