@@ -3,13 +3,12 @@ import mediapipe as mp
 import math
 import serial
 
-# python HandTracking.py
-
 smooth_index_angle = 90
 smooth_middle_angle = 90
 smooth_thumb_angle = 90
 smooth_ring_pinky_angle = 90
 
+last_sent_wrist_pos = None
 index_last_sent_servo = None
 middle_last_sent_servo = None
 thumb_last_sent_servo = None
@@ -58,12 +57,8 @@ def angle(tip, mid,base):
         cos_angle = max(-1, min(1, cos_angle))  # Clamp to valid range
         angle_rad = math.acos(cos_angle)
         finger_angle = math.degrees(angle_rad)
-
-    # Map angle to servo (straight ≈ 180°, bent ≈ 90°)
-    raw_angle = map_value(finger_angle, 90, 180, 180, 0)
-    raw_angle = max(0, min(180, raw_angle))
-
-    return raw_angle
+        return finger_angle
+    return 90
 
 # Smoothes raw angle data
 def smooth_angle(raw_angle, current_smooth):
@@ -109,7 +104,7 @@ while True:
             landmarks = hand_landmarks.landmark
 
             #Wrist
-            # Compute hand angle
+            #Compute hand angle
             wrist = landmarks[0]
             index_base = landmarks[5]
 
@@ -127,9 +122,12 @@ while True:
 
             relative_angle = (hand_angle - angle_offset + 360) % 360
 
-            target_stepper_pos = int((relative_angle / 360.0) * 2048 * WRIST_SENSITIVITY) # 360 degrees = 2048 steps
-            ser.write(f"W:{target_stepper_pos}\n".encode())
+            target_stepper_pos = int((relative_angle / 360.0) * 2048 * WRIST_SENSITIVITY)
 
+            # Only send if changed by at least 10 steps
+            if last_sent_wrist_pos is None or abs(target_stepper_pos - last_sent_wrist_pos) >= 10:
+                ser.write(f"W:{target_stepper_pos}\n".encode())
+                last_sent_wrist_pos = target_stepper_pos
 
             # Index finger
             index_tip = landmarks[8] #fingertip
@@ -138,7 +136,10 @@ while True:
 
             raw_index_angle = angle(index_tip, index_mid,index_base)
 
-            smooth_index_angle = smooth_angle(raw_index_angle, smooth_index_angle)
+            mapped_index = map_value(raw_index_angle, 0, 180, 180, 0)
+            mapped_index = max(0, min(180, mapped_index))
+
+            smooth_index_angle = smooth_angle(mapped_index, smooth_index_angle)
 
             if index_last_sent_servo is None or abs(smooth_index_angle - index_last_sent_servo) >= 2:
                 ser.write(f"I:{smooth_index_angle}\n".encode())
@@ -151,12 +152,13 @@ while True:
             middle_base = landmarks[9]
 
             raw_middle_angle = angle(middle_tip, middle_mid,middle_base)
-            smooth_middle_angle = smooth_angle(raw_middle_angle,smooth_middle_angle)
+            mapped_middle = map_value(raw_middle_angle, 0, 180, 180, 0)
+            mapped_middle = max(0, min(180, mapped_middle))
+            smooth_middle_angle = smooth_angle(mapped_middle,smooth_middle_angle)
 
             if middle_last_sent_servo is None or abs(smooth_middle_angle - middle_last_sent_servo) >= 2:
                 ser.write(f"M:{smooth_middle_angle}\n".encode())
                 middle_last_sent_servo = smooth_middle_angle
-
 
             # Thumb
 
@@ -165,7 +167,9 @@ while True:
             thumb_base = landmarks[2]
 
             raw_thumb_angle = angle(thumb_tip, thumb_mid,thumb_base)
-            smooth_thumb_angle = smooth_angle(raw_thumb_angle,smooth_thumb_angle)
+            mapped_thumb = map_value(raw_thumb_angle, 0, 40, 180, 0)  # Thumb's actual range
+            mapped_thumb = max(0, min(180, mapped_thumb))
+            smooth_thumb_angle = smooth_angle(mapped_thumb,smooth_thumb_angle)
 
             if thumb_last_sent_servo is None or abs(smooth_thumb_angle - thumb_last_sent_servo) >= 2:
                 ser.write(f"T:{smooth_thumb_angle}\n".encode())
@@ -186,8 +190,9 @@ while True:
             raw_pinky_angle = angle(pinky_tip, pinky_mid, pinky_base)
 
             raw_ring_pinky_angle = (raw_pinky_angle + raw_ring_angle)/2 #average the two angles
-
-            smooth_ring_pinky_angle = smooth_angle(raw_ring_pinky_angle,smooth_ring_pinky_angle)
+            mapped_ring_pinky = map_value(raw_ring_pinky_angle, 0, 180, 180, 0)
+            mapped_ring_pinky = max(0, min(180, mapped_ring_pinky))
+            smooth_ring_pinky_angle = smooth_angle(mapped_ring_pinky,smooth_ring_pinky_angle)
 
             if ring_pinky_last_sent_servo is None or abs(smooth_ring_pinky_angle - ring_pinky_last_sent_servo) >= 2:
                 ser.write(f"RP:{smooth_ring_pinky_angle}\n".encode())
