@@ -63,7 +63,7 @@ void loop() {
       thumbServ.write(targetServoAngle);
     }
 
-    if (cmd.startsWith("RP:")) {
+    if (cmd.startsWith("P:")) {
       targetServoAngle = constrain(cmd.substring(2).toInt(), 0, 180);
       ringPinkyServ.write(targetServoAngle);
     }
