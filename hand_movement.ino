@@ -14,8 +14,8 @@ Servo ringPinkyServ;
 
 int indexPin = 9;
 int middlePin = 10;
-int thumbPin = 11;
-int ringPinkyPin = 12;
+int thumbPin = 6;
+int ringPinkyPin = 11;
 
 int targetServoAngle = 90;
 long targetStepperPos = 0;
