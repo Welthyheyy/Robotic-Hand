@@ -177,26 +177,26 @@ while True:
 
             #Ring/Pinky
 
-            ring_tip = landmarks[16]
-            ring_mid = landmarks[14]
-            ring_base = landmarks[13]
+        ring_tip = landmarks[16]
+        ring_mid = landmarks[14]
+        ring_base = landmarks[13]
 
-            raw_ring_angle = angle(ring_tip, ring_mid,ring_base)
+        raw_ring_angle = angle(ring_tip, ring_mid,ring_base)
 
-            pinky_tip = landmarks[20]
-            pinky_mid = landmarks[18]
-            pinky_base = landmarks[17]
+        pinky_tip = landmarks[20]
+        pinky_mid = landmarks[18]
+        pinky_base = landmarks[17]
 
-            raw_pinky_angle = angle(pinky_tip, pinky_mid, pinky_base)
+        raw_pinky_angle = angle(pinky_tip, pinky_mid, pinky_base)
 
-            raw_ring_pinky_angle = (raw_pinky_angle + raw_ring_angle)/2 #average the two angles
-            mapped_ring_pinky = map_value(raw_ring_pinky_angle, 0, 180, 180, 0)
-            mapped_ring_pinky = max(0, min(180, mapped_ring_pinky))
-            smooth_ring_pinky_angle = smooth_angle(mapped_ring_pinky,smooth_ring_pinky_angle)
+        raw_ring_pinky_angle = (raw_pinky_angle + raw_ring_angle)/2 #average the two angles
+        mapped_ring_pinky = map_value(raw_ring_pinky_angle, 0, 180, 180, 0)
+        mapped_ring_pinky = max(0, min(180, mapped_ring_pinky))
+        smooth_ring_pinky_angle = smooth_angle(mapped_ring_pinky,smooth_ring_pinky_angle)
 
-            if ring_pinky_last_sent_servo is None or abs(smooth_ring_pinky_angle - ring_pinky_last_sent_servo) >= 2:
-                ser.write(f"RP:{smooth_ring_pinky_angle}\n".encode())
-                ring_pinky_last_sent_servo = smooth_ring_pinky_angle
+        if ring_pinky_last_sent_servo is None or abs(smooth_ring_pinky_angle - ring_pinky_last_sent_servo) >= 2:
+            ser.write(f"P:{smooth_ring_pinky_angle}\n".encode())
+            ring_pinky_last_sent_servo = smooth_ring_pinky_angle
 
 
 
